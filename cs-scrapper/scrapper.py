@@ -7,10 +7,10 @@ import time
 import pymongo
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # log配置
-logging.basicConfig(filename='cs-scrapper.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='./logs/cs-scrapper.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # 硬编码MongoDB配置
 client = pymongo.MongoClient('10.10.20.210', 27017)
@@ -36,7 +36,7 @@ def fetch_papers(base_url):
 
     # 检查是否有找到论文
     if soup.find('h1', class_='title') and 'Sorry, your query returned no results' in soup.find('h1', class_='title').text:
-        return None
+        return -1
     
     # 找到所有包含论文信息的<li>元素
     papers = soup.find_all('li', class_='arxiv-result')
@@ -173,7 +173,7 @@ def scrapper(from_date, to_date):
         # !每次fetch_papers都会进行一次请求，故需要停顿防止被反爬虫制裁！
         papers_data = fetch_papers(get_base_url(round, from_date, to_date))
         # 该天论文爬取完毕，结束任务
-        if papers_data is None:
+        if papers_data == -1:
             return
         save_to_mongo(papers_data)
         round += 1

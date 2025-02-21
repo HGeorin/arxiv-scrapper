@@ -1,3 +1,4 @@
 /cs-scrapper/progress.txt
-/cs-scrapper/cs-scrapper.log
-/cs-scrapper/__pycache__/*
+/cs-scrapper/logs
+/cs-scrapper/__pycache__
+.vscode

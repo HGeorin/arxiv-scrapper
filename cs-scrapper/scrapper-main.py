@@ -1,12 +1,10 @@
 import os
-import sys
 import logging
 from datetime import datetime, timedelta
-import schedule
 import time
 from scrapper import scrapper
 
-logging.basicConfig(filename='cs-scrapper.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='./logs/cs-scrapper.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 # 进度点文件路径
 progress_file = 'progress.txt'
 
@@ -57,21 +55,7 @@ def update_progress_file(new_date):
     with open(progress_file, 'w') as file:
         file.write(new_date)
 
-# 停止脚本执行的任务
-def stop_task():
-    logging.info("stopping scheduled task...")
-    sys.exit()
 # 仅在脚本直接执行时调用 main() 函数
 if __name__ == "__main__":
-    # # 设置每天的定时任务：下午2点执行
-    # schedule.every().day.at("14:00").do(scheduled_task)
-    # # 设置每天的定时任务：下午1点停止执行
-    # schedule.every().day.at("13:00").do(stop_task)
-
-    # # 持续运行定时任务
-    # while True:
-    #     schedule.run_pending()  # 执行待执行的任务
-    #     time.sleep(10)  # 检查一次
-    
-    # 调试
+    print("scrapper is running...Press ctrl+C to exit.")
     scheduled_task()
