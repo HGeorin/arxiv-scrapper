@@ -3,4 +3,5 @@ cs-scrapper/logs
 cs-scrapper/__pycache__
 cs-scrapper/checkpoint1.txt
 cs-scrapper/checkpoint2.txt
+cs-scrapper/paper_storage
 .vscode

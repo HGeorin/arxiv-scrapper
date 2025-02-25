@@ -158,7 +158,8 @@ def construct_file_path(submit_time, main_theme, arxiv_id, title):
     title = re.sub(r'[\\/:*?"<>|]', '__', title)
 
     # 构建文件路径
-    file_path = os.path.join(main_theme, year, month, day, f"{arxiv_id}_{title}", ".pdf")
+    file_path = os.path.join(main_theme, year, month, day, f"{arxiv_id}_{title}")
+    file_path = file_path + '.pdf'
     
     return file_path
 
