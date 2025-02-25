@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 
 # log配置
-logging.basicConfig(filename='./logs/cs-scrapper.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='./logs/scrapper.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # 硬编码MongoDB配置
 client = pymongo.MongoClient('127.0.0.1', 27017)

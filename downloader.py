@@ -5,7 +5,7 @@ import time
 import logging
 from pymongo import MongoClient
 
-logging.basicConfig(filename='./logs/cs-downloader.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='./logs/downloader.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # 连接 MongoDB
 client = MongoClient("mongodb://localhost:27017/")
