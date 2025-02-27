@@ -7,10 +7,18 @@ from pymongo import MongoClient
 
 logging.basicConfig(filename='./logs/cs-downloader.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# 连接 MongoDB
-client = MongoClient("mongodb://localhost:27017/")
-db = client["arxiv"] 
-collection = db["cs-paper"]
+# 连接到启用认证的 MongoDB
+username = ''
+pwd =''
+ip = ''
+port = ''
+client = pymongo.MongoClient(
+    f'mongodb://{username}:{pwd}@{ip}:{port}/?authSource=admin'
+)
+
+# 选择数据库和集合
+db = client['arxiv']
+collection = db['cs-paper']
 
 # 查询需要下载的论文
 papers = collection.find({"download_mark": 0}, {"arxivId": 1, "file_path": 1})
@@ -21,7 +29,7 @@ BASE_DIR = "./paper_storage"
 print("downloading files. Press Ctrl + C to cancel ...")
 
 # 下载超时时间
-max_time = 10 * 60  # 最大下载时间
+max_time = 12 * 60  # 最大下载时间
 
 for paper in papers:
     arxiv_id = paper["arxivId"]
@@ -42,7 +50,7 @@ for paper in papers:
 
     try:
         # 下载 PDF
-        response = requests.get(pdf_url, stream=True, timeout=60)
+        response = requests.get(pdf_url, stream=True, timeout=max_time)
         if response.status_code == 200:
             download_flag = 1
             with open(full_path, "wb") as pdf_file:
@@ -51,8 +59,6 @@ for paper in papers:
                     # 检查下载总时长
                     elapsed_time = time.time() - start_time
                     if elapsed_time > max_time:  # 如果下载时间超过最大限制
-                        os.remove(full_path)
-                        logging.warning(f"⚠️ download timeout and skip: {arxiv_id}")
                         download_flag = 0
                         break
                     pdf_file.write(chunk)
@@ -61,11 +67,14 @@ for paper in papers:
             if download_flag:
                 collection.update_one({"arxivId": arxiv_id}, {"$set": {"download_mark": 1}})
                 logging.info(f"✅ download successfully : {full_path}")
+            else:
+                os.remove(full_path)
+                logging.warning(f"⚠️ download timeout : {arxiv_id}")
         else:
-            logging.warning(f"⚠️ download failed: {arxiv_id}，status: {response.status_code}")
+            logging.warning(f"⚠️ response failed : {arxiv_id}，status: {response.status_code}")
     except requests.exceptions.Timeout:
         os.remove(full_path)
-        logging.warning(f"⚠️ connection timeout and skip: {arxiv_id}")
+        logging.warning(f"⚠️ connection timeout and skip : {arxiv_id}")
     except Exception as e:
         logging.error(f"❌ {arxiv_id}, {e}")
     time.sleep(10)

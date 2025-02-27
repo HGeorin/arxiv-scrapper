@@ -10,10 +10,18 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 
 # log配置
-logging.basicConfig(filename='./logs/scrapper.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='./logs/cs-scrapper.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# 硬编码MongoDB配置
-client = pymongo.MongoClient('127.0.0.1', 27017)
+# 连接到启用认证的 MongoDB
+username = ''
+pwd= ''
+ip= ''
+port= ''
+client = pymongo.MongoClient(
+    f'mongodb://{username}:{pwd}@{ip}:{port}/?authSource=admin'
+)
+
+# 选择数据库和集合
 db = client['arxiv']
 collection = db['cs-paper']
 
@@ -26,7 +34,7 @@ def get_base_url(round, from_date, to_date):
 # 假设base_url是页面的URL
 def fetch_papers(base_url):
     url = f"{base_url}"
-    response = requests.get(url)
+    response = requests.get(url, timeout = 10 * 60)
     if response.status_code != 200:
         logging.error(f"Failed to fetch {url}")
         return None
@@ -160,7 +168,7 @@ def construct_file_path(submit_time, main_theme, arxiv_id, title):
     # 构建文件路径
     file_path = os.path.join(main_theme, year, month, day, f"{arxiv_id}_{title}")
     file_path = file_path + '.pdf'
-    
+
     return file_path
 
 # 将数据存储到MongoDB的函数
@@ -176,10 +184,15 @@ def scrapper(from_date, to_date):
     round = 0
     while(1):
         # !每次fetch_papers都会进行一次请求，故需要停顿防止被反爬虫制裁！
-        papers_data = fetch_papers(get_base_url(round, from_date, to_date))
+        try:
+            papers_data = fetch_papers(get_base_url(round, from_date, to_date))
+        except requests.exceptions.Timeout:
+            time.sleep(10)
+            logging.warning("request timeout, retrying")
+            continue
         # 该天论文爬取完毕，结束任务
         if papers_data == -1:
             return
         save_to_mongo(papers_data)
         round += 1
-        time.sleep(15)
+        time.sleep(10)
