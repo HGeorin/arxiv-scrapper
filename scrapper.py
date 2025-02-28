@@ -4,20 +4,20 @@ import os
 import re
 import logging
 import time
-import pymongo
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
+from pymongo import MongoClient
 
 # log配置
 logging.basicConfig(filename='./logs/cs-scrapper.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # 连接到启用认证的 MongoDB
-username = ''
-pwd= ''
-ip= ''
-port= ''
-client = pymongo.MongoClient(
+username = 'vector4d'
+pwd ='4dv999'
+ip = 'e102.extrotec.com'
+port = '32217'
+client = MongoClient(
     f'mongodb://{username}:{pwd}@{ip}:{port}/?authSource=admin'
 )
 
