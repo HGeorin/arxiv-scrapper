@@ -10,7 +10,7 @@ from datetime import datetime
 from pymongo import MongoClient
 
 # log配置
-logging.basicConfig(filename='./logs/cs-scrapper.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='./logs/scrapper.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # 连接到启用认证的 MongoDB
 username = 'vector4d'

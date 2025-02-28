@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import time
 from scrapper import scrapper
 
-logging.basicConfig(filename='./logs/cs-scrapper.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='./logs/scrapper.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 # 进度点文件路径
 checkpoint1 = 'checkpoint1.txt'
 checkpoint2 = 'checkpoint2.txt'
