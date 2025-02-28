@@ -12,7 +12,7 @@ username = ''
 pwd =''
 ip = ''
 port = ''
-client = pymongo.MongoClient(
+client = MongoClient(
     f'mongodb://{username}:{pwd}@{ip}:{port}/?authSource=admin'
 )
 
@@ -21,7 +21,7 @@ db = client['arxiv']
 collection = db['cs-paper']
 
 # 查询需要下载的论文
-papers = collection.find({"download_mark": 0}, {"arxivId": 1, "file_path": 1})
+papers = collection.find({"download_mark": 0, "main_theme": 'cs.CV'}, {"arxivId": 1, "file_path": 1})
 
 # 下载目录
 BASE_DIR = "./paper_storage"
@@ -30,6 +30,34 @@ print("downloading files. Press Ctrl + C to cancel ...")
 
 # 下载超时时间
 max_time = 12 * 60  # 最大下载时间
+
+def download_one_paper():
+    # 下载 PDF
+    response = requests.get(pdf_url, stream=True, timeout=max_time)
+    if response.status_code == 200:
+        download_flag = 1
+        with open(full_path, "wb") as pdf_file:
+            start_time = time.time()  # 记录开始时间
+            for chunk in response.iter_content(chunk_size=1024):
+                # 检查下载总时长
+                elapsed_time = time.time() - start_time
+                if elapsed_time > max_time:  # 如果下载时间超过最大限制
+                    download_flag = 0
+                    break
+                pdf_file.write(chunk)
+            
+        # 下载成功，更新数据库
+        if download_flag:
+            collection.update_one({"arxivId": arxiv_id}, {"$set": {"download_mark": 1}})
+            logging.info(f"✅ download successfully : {full_path}")
+        else:
+            os.remove(full_path)
+            logging.warning(f"⚠️ download timeout : {arxiv_id}")
+    else:
+        #返回404状态码，可能没有pdf下载方式，标记成download_mark=2
+        if response.status_code == 404:
+            collection.update_one({"arxivId": arxiv_id}, {"$set": {"download_mark": 2}})
+        logging.warning(f"⚠️ response failed : {arxiv_id}，status: {response.status_code}")
 
 for paper in papers:
     arxiv_id = paper["arxivId"]
@@ -49,34 +77,12 @@ for paper in papers:
         os.remove(full_path)
 
     try:
-        # 下载 PDF
-        response = requests.get(pdf_url, stream=True, timeout=max_time)
-        if response.status_code == 200:
-            download_flag = 1
-            with open(full_path, "wb") as pdf_file:
-                start_time = time.time()  # 记录开始时间
-                for chunk in response.iter_content(chunk_size=1024):
-                    # 检查下载总时长
-                    elapsed_time = time.time() - start_time
-                    if elapsed_time > max_time:  # 如果下载时间超过最大限制
-                        download_flag = 0
-                        break
-                    pdf_file.write(chunk)
-            
-            # 下载成功，更新数据库
-            if download_flag:
-                collection.update_one({"arxivId": arxiv_id}, {"$set": {"download_mark": 1}})
-                logging.info(f"✅ download successfully : {full_path}")
-            else:
-                os.remove(full_path)
-                logging.warning(f"⚠️ download timeout : {arxiv_id}")
-        else:
-            logging.warning(f"⚠️ response failed : {arxiv_id}，status: {response.status_code}")
+        download_one_paper()
     except requests.exceptions.Timeout:
         os.remove(full_path)
         logging.warning(f"⚠️ connection timeout and skip : {arxiv_id}")
     except Exception as e:
         logging.error(f"❌ {arxiv_id}, {e}")
-    time.sleep(10)
+    time.sleep(5)
 
 logging.info("📂 all the papers have been downloaded ")
