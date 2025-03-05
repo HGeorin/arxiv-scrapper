@@ -3,37 +3,36 @@ import requests
 import time
 # import tqdm
 import logging
+from requests.exceptions import SSLError
 from pymongo import MongoClient
 
 logging.basicConfig(filename='./logs/downloader.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # 连接到启用认证的 MongoDB
-username = 'vector4d'
-pwd ='4dv999'
-ip = 'e102.extrotec.com'
-port = '32217'
 client = MongoClient(
-    f'mongodb://{username}:{pwd}@{ip}:{port}/?authSource=admin'
+    '请填写'
 )
 
 # 选择数据库和集合
 db = client['arxiv']
 collection = db['cs-paper']
 
-# 查询需要下载的论文
-papers = collection.find({"download_mark": 0, "main_theme": 'cs.CV'}, {"arxivId": 1, "file_path": 1})
-
 # 下载目录
 BASE_DIR = "./paper_storage"
 
-print("downloading files. Press Ctrl + C to cancel ...")
+# 代理（梯子）
+proxies_ = {
+    'http': 'http://127.0.0.1:7890',
+    'https': 'http://127.0.0.1:7890'
+}
 
 # 下载超时时间
 max_time = 12 * 60  # 最大下载时间
 
-def download_one_paper():
+def download_one_paper(arxiv_id, full_path):
+    pdf_url = f"https://arxiv.org/pdf/{arxiv_id}.pdf"
     # 下载 PDF
-    response = requests.get(pdf_url, stream=True, timeout=max_time)
+    response = requests.get(pdf_url, stream=True, timeout=max_time, proxies=proxies_)
     if response.status_code == 200:
         download_flag = 1
         with open(full_path, "wb") as pdf_file:
@@ -59,30 +58,54 @@ def download_one_paper():
             collection.update_one({"arxivId": arxiv_id}, {"$set": {"download_mark": 2}})
         logging.warning(f"⚠️ response failed : {arxiv_id}，status: {response.status_code}")
 
-for paper in papers:
-    arxiv_id = paper["arxivId"]
-    file_path = paper["file_path"]
+def download_group(papers):
+    for paper in papers:
+        arxiv_id = paper["arxivId"]
+        file_path = paper["file_path"]
+        
+        # 论文本地存储路径
+        full_path = os.path.join(BASE_DIR, file_path)
 
-    # 论文 PDF 下载 URL
-    pdf_url = f"https://arxiv.org/pdf/{arxiv_id}.pdf"
+        # 确保目录存在
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+
+        # 检查文件是否存在，若存在则删除
+        if os.path.exists(full_path):
+            os.remove(full_path)
+
+        try:
+            download_one_paper(arxiv_id, full_path)
+        except SSLError:
+            logging.warning(f"⚠️ proxies has something wrong (maybe run out of money ~) sleep ... : {arxiv_id}")
+            time.sleep(60 * 10 * 1)
+        except FileNotFoundError:
+            collection.update_one({"arxivId": arxiv_id}, {"$set": {"download_mark": 3}})
+            logging.warning(f"⚠️ create file failed, is the length of file name too long? : {arxiv_id}")
+        except requests.exceptions.Timeout:
+            os.remove(full_path)
+            logging.warning(f"⚠️ connection timeout and skip : {arxiv_id}")
+        except Exception as e:
+            logging.error(f"❌ {arxiv_id}, {e}")
+        time.sleep(10)
+
+def paginate_query(page_size=100, page_number=1):
+    skip_count = (page_number - 1) * page_size
+
+    result = collection.find({"download_mark": 0, "main_theme": "cs.CV"}, 
+                             {"arxivId": 1, "file_path": 1}) \
+                       .skip(skip_count) \
+                       .limit(page_size)
+
+    return list(result)
+
+if __name__ == "__main__":
+    print("downloading files. Press Ctrl + C to cancel ...")
+    page_number = 1
+
+    while True:
+        data = paginate_query(page_size=100, page_number=page_number)
+        if not data:
+            break
+        download_group(data)
+        page_number += 1
     
-    # 论文本地存储路径
-    full_path = os.path.join(BASE_DIR, file_path)
-
-    # 确保目录存在
-    os.makedirs(os.path.dirname(full_path), exist_ok=True)
-
-    # 检查文件是否存在，若存在则删除
-    if os.path.exists(full_path):
-        os.remove(full_path)
-
-    try:
-        download_one_paper()
-    except requests.exceptions.Timeout:
-        os.remove(full_path)
-        logging.warning(f"⚠️ connection timeout and skip : {arxiv_id}")
-    except Exception as e:
-        logging.error(f"❌ {arxiv_id}, {e}")
-    time.sleep(5)
-
-logging.info("📂 all the papers have been downloaded ")

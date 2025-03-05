@@ -9,16 +9,19 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 from pymongo import MongoClient
 
+# 代理(梯子)
+proxies_ = {
+    'http': 'http://127.0.0.1:7890',
+    'https': 'http://127.0.0.1:7890'
+}
+
+
 # log配置
 logging.basicConfig(filename='./logs/scrapper.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # 连接到启用认证的 MongoDB
-username = 'vector4d'
-pwd ='4dv999'
-ip = 'e102.extrotec.com'
-port = '32217'
 client = MongoClient(
-    f'mongodb://{username}:{pwd}@{ip}:{port}/?authSource=admin'
+    '自行填写'
 )
 
 # 选择数据库和集合
@@ -34,7 +37,7 @@ def get_base_url(round, from_date, to_date):
 # 假设base_url是页面的URL
 def fetch_papers(base_url):
     url = f"{base_url}"
-    response = requests.get(url, timeout = 10 * 60)
+    response = requests.get(url, timeout = 10 * 60, proxies=proxies_)
     if response.status_code != 200:
         logging.error(f"Failed to fetch {url}")
         return None
