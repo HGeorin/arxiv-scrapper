@@ -9,7 +9,6 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 from pymongo import MongoClient
 
-# 代理(梯子)
 proxies_ = {
     'http': 'http://127.0.0.1:7890',
     'https': 'http://127.0.0.1:7890'
